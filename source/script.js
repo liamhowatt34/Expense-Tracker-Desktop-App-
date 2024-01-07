@@ -15,8 +15,6 @@ const incAddBtn = document.getElementById('inc-add');
 const incRemoveBtn = document.getElementById('inc-rmv');
 const total = document.getElementById('total');
 let runningTotal = 0;
-let expenses = [];
-let incomes = [];
 
 
 // expanding list
@@ -51,7 +49,35 @@ function displayErrorMessage(message) {
 }
 
 
-function appendToList(list, inputDesc, inputAmt, array, operation) {
+// function appendToList(list, inputDesc, inputAmt, array, operation) {
+//     if (!isValidInput(inputDesc, inputAmt)) {
+//         displayErrorMessage('Error. Amount must be a number.');
+//         return;
+//     }
+
+//     // add our item to an html ul
+//     let liElement = document.createElement("li");
+//     liElement.textContent = `Item: ${inputDesc.value} - $${inputAmt.value}`;
+//     list.appendChild(liElement);
+
+//     // keep track of our items, running total, and update the HTML h2
+//     array.push(Number(inputAmt.value));
+//     runningTotal += operation * Number(inputAmt.value);
+//     total.textContent = `Total: $${runningTotal}`;
+
+//     // need to add a selected class for every item we append to the list
+//     // to use with the remove button
+//     liElement.addEventListener('click', function () {
+//         liElement.classList.toggle('selected');
+//     });
+
+//     inputDesc.value = '';
+//     inputAmt.value = '';
+//}
+
+
+// Append an item to the list and update the database
+async function appendToList(list, inputDesc, inputAmt) {
     if (!isValidInput(inputDesc, inputAmt)) {
         displayErrorMessage('Error. Amount must be a number.');
         return;
@@ -62,20 +88,35 @@ function appendToList(list, inputDesc, inputAmt, array, operation) {
     liElement.textContent = `Item: ${inputDesc.value} - $${inputAmt.value}`;
     list.appendChild(liElement);
 
-    // keep track of our items, running total, and update the HTML h2
-    array.push(Number(inputAmt.value));
-    runningTotal += operation * Number(inputAmt.value);
-    total.textContent = `Total: $${runningTotal}`;
-
     // need to add a selected class for every item we append to the list
     // to use with the remove button
     liElement.addEventListener('click', function () {
         liElement.classList.toggle('selected');
     });
 
+    // Update the database in the main process
+    try {
+        const response = await ipcRenderer.invoke('addExpense', {
+            description: inputDesc.value,
+            amount: Number(inputAmt.value)
+        });
+
+        // Handle the response from the main process
+        if (response.success) {
+            console.log('Expense added successfully');
+        } else {
+            console.error('Error adding expense:', response.error);
+            displayErrorMessage('Error adding expense. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error invoking addExpense:', error);
+        displayErrorMessage('Error adding expense. Please try again.');
+    }
+
     inputDesc.value = '';
     inputAmt.value = '';
 }
+
 
 
 function removeFromList(list, selectedItems, array, operation) {
@@ -103,17 +144,17 @@ expHideShowButton.addEventListener('click', toggleExpList);
 incHideShowButton.addEventListener('click', toggleIncList);
 
 expAddBtn.addEventListener('click', function () {
-    appendToList(expList, expInputDesc, expInputAmt, expenses, -1);
-});
-
-expRemoveBtn.addEventListener('click', function () {
-    removeFromList(expList, expList.querySelectorAll('.selected'), expenses, -1);
+    appendToList(expList, expInputDesc, expInputAmt);
 });
 
 incAddBtn.addEventListener('click', function () {
-    appendToList(incList, incInputDesc, incInputAmt, incomes, 1);
+    appendToList(incList, incInputDesc, incInputAmt);
+});
+
+expRemoveBtn.addEventListener('click', function () {
+    removeFromList(expList, expList.querySelectorAll('.selected'));
 });
 
 incRemoveBtn.addEventListener('click', function () {
-    removeFromList(incList, incList.querySelectorAll('.selected'), incomes, 1);
+    removeFromList(incList, incList.querySelectorAll('.selected'));
 });
