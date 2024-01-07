@@ -1,3 +1,6 @@
+// script.js
+const { ipcRenderer } = require('electron');
+
 const expList = document.getElementById('exp-list');
 const incList = document.getElementById('inc-list');
 const expHideShowButton = document.getElementById('exp-hide-show');
