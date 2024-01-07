@@ -54,6 +54,7 @@ function initializeDatabase() {
     });
 }
 
+initializeDatabase();
 
 // Handle messages from the renderer process
 ipcMain.on('addExpense', (event, expense) => {
@@ -75,8 +76,6 @@ ipcMain.on('addExpense', (event, expense) => {
     });
 });
 
-
-initializeDatabase();
 
 function createWindow() {
     const win = new BrowserWindow({

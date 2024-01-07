@@ -118,21 +118,51 @@ async function appendToList(list, inputDesc, inputAmt) {
 }
 
 
+// function removeFromList(list, selectedItems, array, operation) {
+//     // going over our lists to remove them and updating out runningTotal
+//     for (let i = 0; i < selectedItems.length; i++) {
+//         let amount = parseFloat(selectedItems[i].textContent.split('$')[1].trim());
+//         if (array.includes(amount)) {
+//             let index = array.indexOf(amount);
+//             array.splice(index, 1);
+//             runningTotal -= operation * amount;
+//         }
+//     }
 
-function removeFromList(list, selectedItems, array, operation) {
-    // going over our lists to remove them and updating out runningTotal
-    for (let i = 0; i < selectedItems.length; i++) {
-        let amount = parseFloat(selectedItems[i].textContent.split('$')[1].trim());
-        if (array.includes(amount)) {
-            let index = array.indexOf(amount);
-            array.splice(index, 1);
-            runningTotal -= operation * amount;
+//     total.textContent = `Total: $${runningTotal}`;
+
+//     // removing the selected class once removed from ul
+//     selectedItems.forEach(function (item) {
+//         list.removeChild(item);
+//     });
+// }
+async function removeFromList(list, selectedItems) {
+    // Extract the expense IDs and amounts from the selected items
+    const expenses = Array.from(selectedItems).map(item => ({
+        id: parseInt(item.getAttribute('id')),
+        amount: parseFloat(item.textContent.split('$')[1].trim())
+    }));
+
+    // Update the database in the main process
+    try {
+        const response = await ipcRenderer.invoke('removeExpense', expenses);
+
+        // Handle the response from the main process
+        if (response.success) {
+            // Database operation successful
+            console.log('Expense removed successfully');
+        } else {
+            // Database operation failed
+            console.error('Error removing expense:', response.error);
+            displayErrorMessage('Error removing expense. Please try again.');
         }
+    } catch (error) {
+        // Handle IPC invoke error
+        console.error('Error invoking removeExpense:', error);
+        displayErrorMessage('Error removing expense. Please try again.');
     }
 
-    total.textContent = `Total: $${runningTotal}`;
-
-    // removing the selected class once removed from ul
+    // Remove the selected items from the list
     selectedItems.forEach(function (item) {
         list.removeChild(item);
     });
