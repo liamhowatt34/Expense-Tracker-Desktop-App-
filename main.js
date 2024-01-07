@@ -77,6 +77,59 @@ ipcMain.on('addExpense', (event, expense) => {
 });
 
 
+ipcMain.on('removeExpense', (event, { expenseId, expenseAmount }) => {
+    const sql = 'DELETE FROM expenses WHERE id = ?';
+    db.run(sql, [expenseId], function (err) {
+        if (err) {
+            console.error('Error removing expense from the database:', err.message);
+            event.reply('removeExpenseResponse', { success: false, error: err.message });
+        } else {
+            console.log(`expense removed with ID: ${expenseId}`);
+
+            event.reply('removEexpenseResponse', { success: true });
+        }
+    });
+});
+
+
+ipcMain.on('addIncome', (event, income) => {
+    // Destructure the 'income' object sent from the renderer process
+    const { description, amount } = income;
+
+    // Insert the income into the 'incomes' table
+    const sql = 'INSERT INTO incomes (description, amount) VALUES (?, ?)';
+    db.run(sql, [description, amount], function (err) {
+        if (err) {
+            console.error('Error adding income to the database:', err.message);
+            // Send an error response back to the renderer process if needed
+            event.reply('addIncomeResponse', { success: false, error: err.message });
+        } else {
+            console.log(`Income added with ID: ${this.lastID}`);
+            // Send a success response back to the renderer process if needed
+            event.reply('addIncomeResponse', { success: true, incomeId: this.lastID });
+        }
+    });
+});
+
+
+ipcMain.on('removeIncome', (event, { incomeId, incomeAmount }) => {
+    // Remove the income from the 'incomes' table
+    const sql = 'DELETE FROM incomes WHERE id = ?';
+    db.run(sql, [incomeId], function (err) {
+        if (err) {
+            console.error('Error removing income from the database:', err.message);
+            // Send an error response back to the renderer process if needed
+            event.reply('removeIncomeResponse', { success: false, error: err.message });
+        } else {
+            console.log(`Income removed with ID: ${incomeId}`);
+
+            // Send a success response back to the renderer process if needed
+            event.reply('removeIncomeResponse', { success: true });
+        }
+    });
+});
+
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1600,
