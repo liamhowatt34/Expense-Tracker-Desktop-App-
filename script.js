@@ -14,7 +14,7 @@ const incInputAmt = document.getElementById('inc-amt');
 const incAddBtn = document.getElementById('inc-add');
 const incRemoveBtn = document.getElementById('inc-rmv');
 const total = document.getElementById('total');
-let runningTotal = 0;
+// let runningTotal = 0;
 
 
 // expanding list
@@ -69,16 +69,17 @@ async function addExpense(list, inputDesc, inputAmt) {
 
     // Update the database in the main process
     try {
+        console.log("After ipcRenderer.invoke");
         const response = await ipcRenderer.invoke('addExpense', {
             description: inputDesc.value,
             amount: Number(inputAmt.value)
         });
 
-        // Handle the response from the main process
-        if (response.success) {
+        // Check if the response is defined and has the 'success' property
+        if (response && response.success) {
             console.log('Expense added successfully');
         } else {
-            console.error('Error adding expense:', response.error);
+            console.error('Error adding expense:', response ? response.error : 'Response undefined');
             displayErrorMessage('Error adding expense. Please try again.');
         }
     } catch (error) {
@@ -191,10 +192,9 @@ expRemoveBtn.addEventListener('click', function () {
 });
 
 incAddBtn.addEventListener('click', function () {
-    addIncome(incList, incInputDesc, incInputAmt);
+    addIncome(incInputDesc.value, incInputAmt.value);
 });
 
-
 incRemoveBtn.addEventListener('click', function () {
-    removeIncome(incList, incList.querySelectorAll('.selected'));
+    removeIncome(incList.querySelectorAll('.selected'));
 });
