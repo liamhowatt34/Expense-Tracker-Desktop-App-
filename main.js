@@ -3,8 +3,6 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const sqlite3 = require('sqlite3');
 const path = require('path');
 let db;
-console.log('Main process started');
-
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -21,7 +19,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
-    console.log('App is ready');
 });
 
 
@@ -79,13 +76,11 @@ db = new sqlite3.Database(dbPath, (err) => {
         });
     }
 });
-console.log("ready for messages")
 
 
 // Handle messages from the renderer process
 ipcMain.handle('addExpense', async (event, expense) => {
     const { description, amount } = expense;
-    console.log('Received addExpense message:', expense);
 
     try {
         const result = await new Promise((resolve, reject) => {
@@ -131,36 +126,49 @@ ipcMain.handle('removeExpense', async (event, { expenseId }) => {
 });
 
 
-
-ipcMain.on('addIncome', (event, income) => {
-    // Destructure the 'income' object sent from the renderer process
+ipcMain.handle('addIncome', async (event, income) => {
     const { description, amount } = income;
 
-    // Insert the income into the 'incomes' table
-    const sql = 'INSERT INTO incomes (description, amount) VALUES (?, ?)';
-    db.run(sql, [description, amount], function (err) {
-        if (err) {
-            console.error('Error adding income to the database:', err.message);
-            // Send an error response back to the renderer process if needed
-            event.reply('addIncomeResponse', { success: false, error: err.message });
-        } else {
-            console.log(`Income added with ID: ${this.lastID}`);
-            // Send a success response back to the renderer process if needed
-            event.reply('addIncomeResponse', { success: true, incomeId: this.lastID });
-        }
-    });
+    try {
+        const result = await new Promise((resolve, reject) => {
+            const sql = 'INSERT INTO incomes (description, amount) VALUES (?, ?)';
+            db.run(sql, [description, amount], function (err) {
+                if (err) {
+                    console.error('Error adding income to the database:', err.message);
+                    reject({ success: false, error: err.message });
+                } else {
+                    console.log(`Income added with ID: ${this.lastID}`);
+                    resolve({ success: true, incomeId: this.lastID });
+                }
+            });
+        });
+
+        return result;
+    } catch (error) {
+        console.error('Error handling addIcome:', error);
+        return { success: false, error: error.message };
+    }
 });
 
 
-ipcMain.on('removeIncome', (event, { incomeId }) => {
-    const sql = 'DELETE FROM incomes WHERE id = ?';
-    db.run(sql, [incomeId], function (err) {
-        if (err) {
-            console.error('Error removing income from the database:', err.message);
-            event.reply('removeIncomeResponse', { success: false, error: err.message });
-        } else {
-            console.log(`Income removed with ID: ${incomeId}`);
-            event.reply('removeIncomeResponse', { success: true });
-        }
-    });
+ipcMain.handle('removeIncome', async (event, { incomeId }) => {
+    try {
+        const result = await new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM incomes WHERE id = ?';
+            db.run(sql, [incomeId], function (err) {
+                if (err) {
+                    console.error('Error removing income from the database:', err.message);
+                    reject({ success: false, error: err.message });
+                } else {
+                    console.log(`Income removed with ID: ${incomeId}`);
+                    resolve({ success: true });
+                }
+            });
+        });
+
+        return result;
+    } catch (error) {
+        console.error('Error handling removeIncome:', error);
+        return { success: false, error: error.message };
+    }
 });

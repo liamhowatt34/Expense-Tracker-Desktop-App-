@@ -125,37 +125,58 @@ async function removeExpense(list, selectedItems) {
 }
 
 
-async function addIncome(description, amount) {
+
+async function addIncome(list, inputDesc, inputAmt) {
+    if (!isValidInput(inputDesc, inputAmt)) {
+        displayErrorMessage('Error. Amount must be a number.');
+        return;
+    }
+
+    // add our item to an html ul
+    let liElement = document.createElement("li");
+    liElement.textContent = `Item: ${inputDesc.value} - $${inputAmt.value}`;
+    list.appendChild(liElement);
+
+    // need to add a selected class for every item we append to the list
+    // to use with the remove button
+    liElement.addEventListener('click', function () {
+        liElement.classList.toggle('selected');
+    });
+
+    // Update the database in the main process
     try {
         const response = await ipcRenderer.invoke('addIncome', {
-            description: description,
-            amount: Number(amount)
+            description: inputDesc.value,
+            amount: Number(inputAmt.value)
         });
 
-        // Handle the response from the main process
-        if (response.success) {
+        // Check if the response is defined and has the 'success' property
+        if (response && response.success) {
             console.log('Income added successfully');
         } else {
-            console.error('Error adding income:', response.error);
+            console.error('Error adding income:', response ? response.error : 'Response undefined');
             displayErrorMessage('Error adding income. Please try again.');
         }
     } catch (error) {
         console.error('Error invoking addIncome:', error);
         displayErrorMessage('Error adding income. Please try again.');
     }
+
+    inputDesc.value = '';
+    inputAmt.value = '';
 }
 
 
-async function removeIncome(selectedItems) {
-    // Extract the income IDs and amounts from the selected items
-    const incomes = Array.from(selectedItems).map(item => ({
+async function removeIncome(list, selectedItems) {
+    // Extract the expense IDs and amounts from the selected items
+    const expenses = Array.from(selectedItems).map(item => ({
         id: parseInt(item.getAttribute('id')),
         amount: parseFloat(item.textContent.split('$')[1].trim())
     }));
 
     // Update the database in the main process
     try {
-        const response = await ipcRenderer.invoke('removeIncome', incomes);
+        const response = await ipcRenderer.invoke('removeIncome', expenses);
 
         // Handle the response from the main process
         if (response.success) {
@@ -174,7 +195,7 @@ async function removeIncome(selectedItems) {
 
     // Remove the selected items from the list
     selectedItems.forEach(function (item) {
-        incList.removeChild(item);
+        list.removeChild(item);
     });
 }
 
@@ -192,9 +213,9 @@ expRemoveBtn.addEventListener('click', function () {
 });
 
 incAddBtn.addEventListener('click', function () {
-    addIncome(incInputDesc.value, incInputAmt.value);
+    addIncome(incList, incInputDesc, incInputAmt);
 });
 
 incRemoveBtn.addEventListener('click', function () {
-    removeIncome(incList.querySelectorAll('.selected'));
+    removeIncome(incList, incList.querySelectorAll('.selected'));
 });
