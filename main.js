@@ -2,31 +2,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const sqlite3 = require('sqlite3');
 const path = require('path');
+let win;
 let db;
-
-function createWindow() {
-    const win = new BrowserWindow({
-        width: 1600,
-        height: 900,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-        },
-    });
-
-    win.loadFile('index.html');
-}
-
-app.whenReady().then(() => {
-    createWindow();
-});
-
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
 
 
 // database
@@ -76,6 +53,57 @@ db = new sqlite3.Database(dbPath, (err) => {
         });
     }
 });
+
+
+function fetchExpensesAndIncomes() {
+    console.log('start fetchExpensesAndIncomes')
+    db.all('SELECT * FROM expenses', (err, expenses) => {
+        if (err) {
+            console.error('Error fetching expenses:', err.message);
+        } else {
+            win.webContents.send('expensesFetched', expenses);
+        }
+    });
+
+    db.all('SELECT * FROM incomes', (err, incomes) => {
+        if (err) {
+            console.error('Error fetching incomes:', err.message);
+        } else {
+            console.log('Incomes fetched from database:', incomes);
+            win.webContents.send('incomesFetched', incomes);
+        }
+    });
+    console.log('end fetchExpensesAndIncomes')
+}
+
+
+function createWindow() {
+    win = new BrowserWindow({
+        width: 1600,
+        height: 900,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'), // path to your preload script
+        },
+    });
+
+    win.loadFile('index.html');
+}
+
+app.whenReady().then(() => {
+    createWindow();
+
+    fetchExpensesAndIncomes()
+});
+
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
 
 
 // Handle messages from the renderer process
